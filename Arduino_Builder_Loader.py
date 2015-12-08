@@ -1,14 +1,14 @@
 #!/bin/python
 import os.path
 import os
-import itertools
+#import itertools
 import subprocess
-from subprocess import call
-import shlex
+#from subprocess import call
+#import shlex
 
-import platform_txt_loader
-import arduino_sketch_fixer
-from object_builder import builder
+import Variable_Loader
+import Sketch_to_Cpp
+from Command_Creator import Obj_Builder
 
 # Deriving values for these settings: 
 #  "sketch_path" is the location of the main .ino file of this project.
@@ -92,9 +92,9 @@ def main():
     # We need to retrieve from the boards.txt and platform.txt files a bunch of
     #  information. They contain all we need to know to build and upload our
     #  sketch.
-    Variables = platform_txt_loader.Variable_Manager(boards_txt_file, board)
+    Variables = Variable_Loader.Variable_Manager(boards_txt_file, board)
     Variables.parse_file(platform_txt_file)
-    Patterns  = platform_txt_loader.Pattern_Manager(platform_txt_file)
+    Patterns  = Variable_Loader.Pattern_Manager(platform_txt_file)
 
     # These are things that are normally provided by the IDE.
     build_variant_path = runtime_platform_path + "/variants/" + board
@@ -120,7 +120,7 @@ def main():
     # Note that library includes are expected to all be above everything that is
     # not a comment or preproc statement; that's kinda dumb but it *does* make
     # turning a #include into a path to find a library easier.
-    library_includes = arduino_sketch_fixer.fix_sketch(sketch_path + "/" + \
+    library_includes = Sketch_to_Cpp.fix_sketch(sketch_path + "/" + \
                                                        sketch_name)
 
     include_path_list = []
@@ -203,23 +203,23 @@ def main():
     #  object file in question, UNLESS the object file already exists and is
     #  newer than the source file; then it simply is None
     for source_file in cpp_file_list:
-        builder_list.append(builder(build_path, source_file,
+        builder_list.append(Obj_Builder(build_path, source_file,
                                        cpp_build_recipe))
             
     for source_file in c_file_list:
-        builder_list.append(builder(build_path, source_file,
+        builder_list.append(Obj_Builder(build_path, source_file,
                                        c_build_recipe))
 
     for source_file in s_file_list:
-        builder_list.append(builder(build_path, source_file,
+        builder_list.append(Obj_Builder(build_path, source_file,
                                        s_build_recipe))
 
     for command in builder_list:
         command.remove_duplicate_args()
 
     for builder_item in builder_list:
-        if builder_item.fetch_build_pattern():
-            builder_cmd = builder_item.make_win_cmd()
+        if builder_item.fetch_cmd_pattern():
+            builder_cmd = builder_item.fetch_cmd()
             subprocess.check_call(builder_cmd)
 
     # Must put all object files into an archive file; we can do that
@@ -249,7 +249,7 @@ def main():
     subprocess.check_call(hex_cmd)
 
     upload_tool_var_name = board + ".upload.tool"
-    upload_tool_name = Variables.fetch(upload_tool_var_name)
+    upload_tool_name = Variables.fetch_variable(upload_tool_var_name)
     upload_tool_path_name = "tools." + upload_tool_name + ".path"
     upload_tool_path = Variables.fetch(upload_tool_path_name)
     upload_tool_compiler_path_name = "tools." + upload_tool_name +\
