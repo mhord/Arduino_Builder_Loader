@@ -18,6 +18,9 @@ class Cmd_Builder:
     def fetch_out_file(self):
         return self.out_file
 
+    def fetch_source_file(self):
+        return self.in_file
+
     def fetch_cmd_pattern(self):
         return self.cmd_arg_list
 
@@ -30,15 +33,16 @@ class Cmd_Builder:
 class Obj_Builder(Cmd_Builder):
 
     def __init__(self, build_path, source_file, build_cmd_pattern):
-        self.obj_file = build_path + "/" +\
+        self.in_file = source_file
+        self.out_file = build_path + "/" +\
                 source_file.rsplit("/",1)[1] + '.o'
 
-        if ((os.path.exists(self.obj_file) == False) or
-           (os.path.exists(self.obj_file) and
-           (os.path.getmtime(source_file) > os.path.getmtime(self.obj_file)))):
+        if ((os.path.exists(self.out_file) == False) or
+           (os.path.exists(self.out_file) and
+           (os.path.getmtime(source_file) > os.path.getmtime(self.out_file)))):
             self.cmd_arg_list = shlex.split(build_cmd_pattern.\
                     replace('{source_file}', source_file).\
-                    replace('{object_file}', self.obj_file))
+                    replace('{object_file}', self.out_file))
         else:
             self.cmd_arg_list = None
 
